@@ -1,0 +1,3614 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# •\ttrf_movilidad_mes: mobility information according to the use of sites, quantity of districts, departments and sites used in the month.\n",
+    "# •\tper_ticketera: information related to the clients that visit entel's stores\n",
+    "# •\tper_interacciones: interactions of out clients with us, through  any channel. May be interactions for a consultation, an order or a claim\n",
+    "## •\tper_reniec: base of the national registry of people \n",
+    "# •\tred_smartcare_mes: use of data by applications / websites\n",
+    "# •\tidn_desactivaciones: data of deactivations\n",
+    "# •\tidn_consulta_previa: data of entel users asking for a port-in in other operators \n",
+    "# •\tri_pco: risk evaluation of entel clients\n",
+    "# •\tper_base_post: postpaid base, with different type of data, like traffic, rent, payments, incidents, lines\n",
+    "# •\tper_tablon: consolidated data used as input for the model, just the variables in the dictionary are part of the model \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# import h2o\n",
+    "import pandas as pd\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### per_base_post_20210101.csv - column definitions are present"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df1 = pd.read_csv(\"C:/Users/MalikM/OneDrive -  Group/Documents/CVM TEAM -PUNE/PARTNER MARKETs/PERU/PERU CHURN/DATA/Actual_Data/per_base_post_20210101.csv\",nrows=700000)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# a=df1.loc[:,[\"fecmigprepost\", #Date on which the last migration from pre to post of the account occured #-- extract days from it,\n",
+    "#                                          #missing- to filled with fecingresocliente (days)\n",
+    "# \"numflag_migprepost\", # Indicator of whether the account has a migration from prepaid to postpaid associated.\n",
+    "# \"numflag_migprepost_1m\",\n",
+    "# \"numflag_migprepost_2m\",\n",
+    "# \"numflag_migprepost_3m\",\n",
+    "# \"numflag_migprepost_6m\",\n",
+    "# \"numflag_renovacion\", #Indicator of whether the account has a migration from prepaid to postpaid associated.\n",
+    "# \"numflag_renovacion_1m\", #Indicator of whether the account has a line that has moved from prepaid to postpaid in the past month.\n",
+    "#  \"numflag_renovacion_2m\",  #Indicator of whether the account has a line that has moved from prepaid to postpaid in the past 2month.\n",
+    "#  \"numflag_renovacion_3m\",  #Indicator of whether the account has a line that has moved from prepaid to postpaid in the past 3 months.\n",
+    "#  \"numflag_renovacion_6m\"]]\n",
+    "\n",
+    "df1[(df1.numlineas_post_celular) !=(df1.numlineas_post) ].loc[:,['numlineas_post_celular','numlineas_post']]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df1.fecmigprepost.isnull().sum()\n",
+    "# df1.vchmotivo_deac.nunique()\n",
+    "# \"numvep_cuotastotal\",#Total number of VEP instalments\n",
+    "# \"numvep_cuotasfacturadas\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post1=pd.DataFrame(df1.loc[:,[\"cli__documento\",\"imei_hash\",\"lin__telefono\",\n",
+    "#\"fecactivacion_post\", #Activation date of the contract -- extract days from this\n",
+    "                                         # no missing -- remove missing rows\n",
+    "                                         # duplicate - fecactivacioncontrato\n",
+    "#\"fecactivacioncontrato\", #\tFirst activation date of the line -- extract days from this\n",
+    "                                         # remove missing rows\n",
+    "                                         # duplicate - fecactivacion_post\n",
+    "#\"numantiguedad_post\", #Antiquity of the line.\n",
+    "                                         # duplicate -   extracting months from fecactivacion_post or fecactivacioncontrato                                                                               \n",
+    "\"numantiguedad\", # Antiquity of the client.(months)\n",
+    "                                         # duplicate - extracting months from fecactivacion_post or fecactivacioncontrato\n",
+    "                                         # use this rather than fecactivacion_post or fecactivacioncontrato\n",
+    "                                         # remove missing rows\n",
+    "\n",
+    "                                         \n",
+    "#\"fecdesactivacioncontrato\",#Deactivation date of the contract (if the line churned during the month) -?\n",
+    "                                         # missing - ??????? -- remove missing\n",
+    "                                         # how can deactivation date is lower than activation date\n",
+    "                                         # duplicate - fecingresocliente\n",
+    "#\"fecingresocliente\",#First activation date of the client -- extract days from this\n",
+    "                                         # missing - ??????? - remove missing\n",
+    "                                         # duplicate - fecdesactivacioncontrato\n",
+    "\"numantiguedad_cliente\", # Client antiquity (measured as the antiquity of the oldest line associated with the client)(months)\n",
+    "                                         # duplicate -fecdesactivacioncontrato or fecingresocliente\n",
+    "                                         # missing - remove rows\n",
+    "                                         # use this rather fecdesactivacioncontrato or fecingresocliente\n",
+    "          \n",
+    "                                         \n",
+    "\"fecmigprepost\", #Date on which the last migration from pre to post of the account occured #-- extract months from it,\n",
+    "                                         #missing- to filled with 99\n",
+    "\"numflag_migprepost\", # Indicator of whether the account has a migration from prepaid to postpaid associated.\n",
+    "\"numflag_migprepost_1m\",\n",
+    "\"numflag_migprepost_2m\",\n",
+    "\"numflag_migprepost_3m\",\n",
+    "\"numflag_migprepost_6m\",\n",
+    "                                         \n",
+    "\"numflag_renovacion\", #Indicator of whether the account has a line that has a migration from prepaid to postpaid associated.\n",
+    "\"numflag_renovacion_1m\", #Indicator of whether the account has a LINE that has moved from prepaid to postpaid in the past month.\n",
+    " \"numflag_renovacion_2m\",  #Indicator of whether the account has a LINE that has moved from prepaid to postpaid in the past 2month.\n",
+    " \"numflag_renovacion_3m\",  #Indicator of whether the account has a LINE that has moved from prepaid to postpaid in the past 3 months.\n",
+    " \"numflag_renovacion_6m\",  #Indicator of whether the account has a LINE that has moved from prepaid to postpaid in the past 6 months.\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\"fecultimocambioeqp\", # Date of the last change of device-- extract months\n",
+    "                                         #missing - \"numantiguedad_cliente\"-(measured as the antiquity of the oldest line associated with the client)(months)\n",
+    "   \n",
+    "                                         \n",
+    "############################ robbery / suspension for paymment failure   - creaate flag as max is 4                                       \n",
+    "\"numsuspmora_12m\", #The line has a suspension for robbery in the past 12 months.\n",
+    "                    # Flag\n",
+    "\"numsuspmora_1m\", #Number of suspensions for failing payment/robery in the last month.\n",
+    "                    ## Flag\n",
+    "\"numsuspmora_3m\",##Number of suspensions for failing payment/robery in the last3 month.\n",
+    "                    ## # Flag\n",
+    "\"numsuspmora_6m\",##Number of suspensions for failing payment/robery in the last 3month.\n",
+    "                    ## # Flag\n",
+    "                                         \n",
+    "\"numsusprobo_12m\",##Number of suspensions for failing payment/robery in the last 12month.\n",
+    "                    ## Flag\n",
+    "\"numsusprobo_1m\",##Number of suspensions for failing payment/robery in the last 1month.\n",
+    "                     ## Flag                    \n",
+    "\"numsusprobo_3m\",##Number of suspensions for failing payment/robery in the last 3month.\n",
+    "                    ## Flag\n",
+    "\"numsusprobo_6m\",##Number of suspensions for failing payment/robery in the last 6month.\n",
+    "                    ## Flag\n",
+    "# \"fecultsusp_mora\", # Date of the last suspension for robbery - Flag -y/n\n",
+    "                                         # missing - N\n",
+    "# \"fecultsusp_robo\", # Date of the last suspension for robbery - Flag -y/n\n",
+    "                                         # missing - N\n",
+    "\n",
+    "\n",
+    "\"fecvep_orden\", #Date of the VEP order - flag y/n\n",
+    "                                         #missing - n\n",
+    "                                    \n",
+    "                                         \n",
+    "########################################  dates                                         \n",
+    "#\"fecvep_validodesde\" - empty - do not use\n",
+    "#\"numbeneficio_cantidad\", # no info and blank\n",
+    "#\"numbeneficio_devolucion\", #no info and blank\n",
+    "#\"numbeneficio_monto\", #no info and blank\n",
+    "\n",
+    "\n",
+    "\"numcant_cambioplan\", # Number of plan changes in the month.\n",
+    "                                         # majority are 0\n",
+    "                                         #missing - mean/mode (max value)\n",
+    "#\"numflag_cambioplan\", #Indicator of whether the line has had a plan change in the month.\n",
+    "                                         \n",
+    "\"numcant_celdas\", # Number of nodes on which the line has made traffic in the month. - ????\n",
+    "                                         #missing - mean/mode (max value)\n",
+    "\n",
+    "\"numcant_consultaprevia\", # Number of previous consults in the month\n",
+    "                                         # missing - mean/mode\n",
+    "                                         #majority are 0 but we have values\n",
+    "# \"numflag_consultaprevia\",\n",
+    "#\"numcant_consultaprevia_1m\", #Number of previous consults in the last 1month\n",
+    "                                        # # missing - mean/mode\n",
+    "                                         #all 0 -\n",
+    "#\"numflag_consultaprevia_1m\",\n",
+    "#\"numcant_consultaprevia_2m\", #Number of previous consults in the last 2month\n",
+    "                                        # # missing - mean/mode\n",
+    "                                         #all 0\n",
+    "#\"numflag_consultaprevia_2m\",\n",
+    "#\"numcant_consultaprevia_3m\", ##Number of previous consults in the last 3month\n",
+    "                                        # # missing - mean/mode\n",
+    "                                         # all 0\n",
+    "#\"numflag_consultaprevia_3m\",\n",
+    "#\"numcant_consultaprevia_6m\", #Number of previous consults in the last 6month\n",
+    "                                        # # missing - mean/mode\n",
+    "                                         # all 0\n",
+    "\n",
+    "\"numflag_consultaprevia_6m\",\n",
+    "   \n",
+    "                                         \n",
+    "                                         \n",
+    "#numcant_incidente_cal\n",
+    "#numcant_incidente_cal_1m\n",
+    "#numcant_incidente_cal_2m,\n",
+    "#numcant_incidente_cal_3m,\n",
+    "#numcant_incidente_cal_6m,\n",
+    "#numcant_incidente_cap,\n",
+    "#numcant_incidente_cap_1m,\n",
+    "#numcant_incidente_cap_2m,\n",
+    "#numcant_incidente_cap_3m,\n",
+    "#numcant_incidente_cap_6m,\n",
+    "\n",
+    "                                         \n",
+    "\"numcant_renovacion\", # Number of renewals in the month.\n",
+    "                                         # missing - mean/mode\n",
+    "\n",
+    "\"numcant_renovacion_1m\",# Number of renewals in the last 1month.\n",
+    "                                         # missing - mean/mode\n",
+    "                                         \n",
+    "\"numcant_renovacion_2m\",# Number of renewals in the last 2 month.\n",
+    "                                         # missing - mean/mode\n",
+    "\"numcant_renovacion_3m\",# Number of renewals in the last 3 month.\n",
+    "                                         # missing - mean/mode\n",
+    "\"numcant_renovacion_6m\", # # Number of renewals in the last 6 month.\n",
+    "                                         # missing - mean/mode\n",
+    "\n",
+    "#numconsumo_bucket_mb,\n",
+    "#numconsumo_bucket_min,\n",
+    "\n",
+    "\"numcodigoplantarifariobscs\", # Tariff plan code - -ve numbers (codes)\n",
+    "                                         # there are 100s of codes - but few are majorly used bu customer\n",
+    "                                         # HOW TO USE IT????????????????????????????????\n",
+    "\n",
+    "\"numcostointerconexionvoz\", # Interconection cost\n",
+    "                                         # negative numbers - convert to positive and use \n",
+    "                                         #missing - mean/mode\n",
+    "\n",
+    "\"numfact_adicionales\",  #Total billed ammount for extras consumptions outside of the tariff plan.\n",
+    "                                         # hardly 7-8 uique values and 99% it is 0\n",
+    "                                         # flag 0-no, otherwise - 1\n",
+    "                                         \n",
+    "\n",
+    "\"numfact_contratados\", #Total billed ammount in the contracted tariff plan.\n",
+    "                                         # missing remove rows or -- based on dictionary of numcodigoplantarifariobscs\n",
+    "\n",
+    "#numfact_datoslocales\n",
+    "\n",
+    "#\"numfact_occ\", #Total ammount of billed OCC\n",
+    "                                         # -ve numbers - convert to +ve\n",
+    "                                         # small numbers - majority 0 --\n",
+    "                                         #flag -0.0 -0, 1 otherwise\n",
+    "                                         # missing -\n",
+    "\"numflag_occ\", #Indicator of whether the line has had an OCC billing.\n",
+    "                                         # all 0 ???? \n",
+    "############ when some numfact_occ are non zeros how come all the numflag are 0??????\n",
+    "\n",
+    "\"numfact_occ_ac\",#Total ammount of billed OCC-ac\n",
+    "                                        #all 0 --\n",
+    "                                         #could be dropped or flag -0.0 -0, 1 otherwise\n",
+    "                                         #missing - 0\n",
+    "                                         \n",
+    "\"numfact_occ_otros\", #Total ammount of billed OCC-others\n",
+    "                                         # -ve numbers - convert to +ve\n",
+    "                                         # small numbers - majority 0 --\n",
+    "                                         #flag -0.0 -0, 1 otherwise\n",
+    "                                         # missing -\n",
+    "#numfact_paquetes,\n",
+    "#numfact_prom_dsc,\n",
+    "                                         \n",
+    "                                         \n",
+    "############################################# many duplicates in roaming                                        \n",
+    "\"numflag_roam\", #Indicates if the line has done roaming (1) or not (0)\n",
+    "\"numflag_roam_7d\", #Indicator of whether the line has had a roaming consumption in the past 7 days.\n",
+    "                                         #all 0\n",
+    "\n",
+    "\"numflag_roam_consumo\", #Ammount of roaming consumption.\n",
+    "                                         # ????? all 0\n",
+    "\"numroam_monto\", #Ammount billed for roaming.\n",
+    "                                         # ???? all 0\n",
+    "                                         \n",
+    "\"numfact_roaming\", #Billed for roaming total\n",
+    "                                         # 8-9 unique values -99%-0 #??????????????? when all roaming is 0, how this has values\n",
+    "                                         #flag\n",
+    "\n",
+    "#\"numroam_minutos\",#\tMinutes in roaming \n",
+    "                                # ???????  all 0\n",
+    "\"numroam_monto_voz\", #Ammount billed for roaming voice.                                       \n",
+    "\n",
+    "                                         \n",
+    "#\"numfact_roamingdatos\", #Billed for roaming MB\n",
+    "                                         ## all 0\n",
+    "                                         ## either flag or drop it\n",
+    "#use either                                 \n",
+    "\"numroam_monto_datos\", #Ammount billed for roaming data.,\n",
+    "                                         # missing - mode(0)\n",
+    "\n",
+    "\n",
+    "                                                                       \n",
+    "#\"numfact_roamingsms\", # Billed for roaming sms\n",
+    "                        # ## all 0\n",
+    "                           ## either flag or drop it\n",
+    "\"numroam_monto_sms\", #Ammount billed for roaming messages.\n",
+    "#\"numroam_mensajes\", #SMS in roaming\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "                                        \n",
+    "#\"numfact_total\", # sum of all num facts -Total billed ammount\n",
+    "                                         # few values are -ve???????\n",
+    "                                         # missing = sum of all numfact or = numfact_contratados\n",
+    "\n",
+    "\n",
+    "\"numfactadic_contenidodig\", #Billed ammount for digital content\n",
+    "                                         # all 0, \n",
+    "                                         #flag or drop\n",
+    "\n",
+    "\"numfactadic_datos_navegador\", #Billed ammount for data navigation.\n",
+    "                                        # # all 0, \n",
+    "                                           #flag or drop\n",
+    "\"numfactadic_mensajeria\", #Billed ammount for messages\n",
+    "                                         ## # all 0, \n",
+    "                                           #flag or drop\n",
+    "\n",
+    "\"numfactadic_voz_interconexion\", #Billed ammount for interconection\n",
+    "                                         # majority 0\n",
+    "                                         #flag\n",
+    "\n",
+    "\"numfactadic_voz_ldi\", #Billed ammount for long distance international calls\n",
+    "                                         #mostly all 0\n",
+    "                                         #flag\n",
+    "\n",
+    "\"numfactadic_voz_ldn_rural\", #Billed ammount for long distance national calls\n",
+    "                                         #all 0\n",
+    "                                         #flag or drop\n",
+    "\n",
+    "\"numfactcont_garantia\", #Billed ammount for any warranty the line is associated with.\n",
+    "                                         #majority 0, but 100s of customers with non 0\n",
+    "                                         # flag or values\n",
+    "\n",
+    "\"numfactcont_rentabasica\", # Billed ammount for the plan fee.\n",
+    "                                         #majority 0, few 1000s are non zero?????????????????????\n",
+    "                                         #few are negatives ????????????????????????????\n",
+    "                                         # as it is \n",
+    "\n",
+    "\"numfactcont_trafico3g\",#Billed ammount for 3G traffic\n",
+    "                                         #majority are 0\n",
+    "                                         # flag\n",
+    "\n",
+    "#### flags\n",
+    "\"numflag_arm\", #The line is in the \"do-not-call\" list\n",
+    "                                         #flag it is\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\"numflag_downselling_1m\", #Indicator of whether the line has a previous consult in the month.\n",
+    "\n",
+    "\"numflag_downselling_2m\", #Indicator of whether the line has done a previous consult in the last  2month.\n",
+    "\n",
+    "\"numflag_downselling_3m\", # same\n",
+    "\"numflag_downselling_6m\", # same\n",
+    "                                         \n",
+    "\"numflag_dsctolineaadic\", #Indicator of whether the line has received a discouint for aditional lines.\n",
+    "\n",
+    "\"numflag_empleado\", #The line is associated with an account whose owner is an employee of Entel.\n",
+    "\n",
+    "\"numflag_gni\", #The line is in the \"do-not-call\" list\n",
+    "\n",
+    "\"numflag_lpdp\", #The line is in the \"do-not-call\" list\n",
+    "\n",
+    "\n",
+    "\n",
+    "#\"numflag_nursery\",\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\"numflag_trafdatos_mayor100mb\",#Indicator of whether the line has traffic associated with it in the last month.\n",
+    "\n",
+    "\"numflag_trafico_1m\", #Indicator of whether the line has traffic associated with it in the last 1month.\n",
+    "\n",
+    "\"numflag_trafico_2m\",#Indicator of whether the line has traffic associated with it in the last 2month.\n",
+    "\n",
+    "\"numflag_trafico_3m\", #Indicator of whether the line has traffic associated with it in the last 3month.\n",
+    "\n",
+    "\"numflag_trafico_6m\", #Indicator of whether the line has traffic associated with it in the last 6month.\n",
+    "\n",
+    "\"numflag_trafsal_mayor1000min\", #Indicator of whether the outgoing traffic is higher than 1000 minutes\n",
+    "\n",
+    "\"numflag_trafsal_menor20min\",#\tIndicator of whether the outgoing traffic is lower than 20 minutes.\n",
+    "\n",
+    "\"numflag_upselling_1m\", #\tIndicator whether the line has done an upselling in the past month.\n",
+    "\"numflag_upselling_2m\",\n",
+    "\"numflag_upselling_3m\",\n",
+    "\"numflag_upselling_6m\",\n",
+    "                                         \n",
+    "\"numflag_vep\",\n",
+    "                                         \n",
+    "\"numlineas_post\", #Total number of postpaid lines in the account\n",
+    "                                         #missing - mode\n",
+    "\n",
+    "\"numlineas_post_celular\", #Total number of mobile postpaid lines in the account\n",
+    "                                         #missing -mode\n",
+    "\n",
+    "\"numlineas_pre\", # Total number of prepaid lines in the account\n",
+    "                                         #missing - mode\n",
+    "\n",
+    "\"numlineas_pre_celular\", #Total number of mobile prepaid lines in the account\n",
+    "                                         #missing -mode\n",
+    "\n",
+    "\n",
+    "\"numlineas_total\", #Total number of lines in the account\n",
+    "                                        # missing -mode\n",
+    "\"numllamadas_ent\", #Number of incomming calls in the month\n",
+    "                                         # ??????????????????????????? - all are 0\n",
+    "\n",
+    "\"numllamadas_ent_dia\", #Number of daytime incomming calls in the month\n",
+    "                                         #???????????????????????????? all are 0\n",
+    "\n",
+    "\"numllamadas_ent_noche\", #Number of nighttime incomming calls in the mont\n",
+    "                                         # ??????????????????? all are 0\n",
+    "\n",
+    "\"numllamadas_sal\", # Number of outgoing calls in the month\n",
+    "                                        # ??????????????????? all are 0\n",
+    "\"numllamadas_sal_dia\",# Number of daytime outgoing calls in the month\n",
+    "                                        ## ??????????????????? all are 0\n",
+    "\"numllamadas_sal_noche\", #Number of nighttime outgoing calls in the mont\n",
+    "                                        ## ??????????????????? all are 0\n",
+    "\"numllamadas_tot\", #Number of calls in the month\n",
+    "                                        ## ??????????????? all are 0\n",
+    "                                         \n",
+    "                                         \n",
+    "\"nummb_applemusic\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                         #flag\n",
+    "\"nummb_facebook\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                           #flag\n",
+    "\"nummb_gratuito\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                           #flag\n",
+    "\"nummb_instagram\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                           #flag\n",
+    "\"nummb_mail\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                           #flag\n",
+    "\"nummb_pagado\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                           #flag\n",
+    "\"nummb_soundcloud\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                           #flag\n",
+    "\"nummb_spotify\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                           #flag\n",
+    "\"nummb_total\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                           #flag\n",
+    "\"nummb_whatsapp\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                           #flag\n",
+    "\"nummb_youtube\", #MB used in AppleMusic in the month\n",
+    "                                         # ???????????????? all 0\n",
+    "                                           #flag\n",
+    "#\"nummigprepost_periodo\", #Month on which the last migration from pre to post of the account occured\n",
+    "                                # duplicate\n",
+    "\"nummin_ent\", #Total number of minutes of incomming traffic.\n",
+    "                    # missing - mean\n",
+    "\"nummin_ent_externo\", #Minutes of ingoing external traffic.\n",
+    "                    ## missing - mean\n",
+    "\"nummin_ent_fijo\", #Minutes of incomming traffic to fixed line.\n",
+    "                    ## missing -mean\n",
+    "\"nummin_ent_offnet\", #Minutes of incomming traffic offnet.\n",
+    "                    #mising -mean\n",
+    "\"nummin_ent_onnet\", #Minutes of incomming traffic onnet.\n",
+    "                    ##mising -mean\n",
+    "                    # ????????????? -ve values                     \n",
+    "\"nummin_sal\",  #Total number of minutes of outgoing traffic.\n",
+    "                    #missing - mean\n",
+    "\"nummin_sal_externo\", #Minutes of external outgoing traffic.\n",
+    "                        #missing - mean\n",
+    "\"nummin_sal_fijo\", # Minutes of outgoing traffic to fixed line.\n",
+    "                        #missing - mean\n",
+    "\"nummin_sal_ldi\", # Minutes of outgoing traffic to international destinations.\n",
+    "                                         #majority 0 - flag\n",
+    "\"nummin_sal_offnet\", #Minutes of outgoing traffic offnet.\n",
+    "                        #missing -mean\n",
+    "\"nummin_sal_onnet\", # Minutes of outgoing traffic onnet.\n",
+    "                        # missing -mean\n",
+    "#\"nummin_tot\", #Total number of minutes in the month.\n",
+    "\n",
+    "\"numrenta_conigv\", #Fixed fee for the plan, including taxes\n",
+    "# use either one of them\n",
+    "#\"numrenta_sinigv\", #Fixed fee for the plan, without taxes\n",
+    "\n",
+    "\n",
+    "\"numvep_cuotastotal\",#Total number of VEP instalments\n",
+    "\"numvep_cuotasfacturadas\", #Total number of billed VEP instalmentes\n",
+    "                                         \n",
+    "\"numvep_cuotaconigv\",#VEP instalment ammount (PEN) with taxes\n",
+    "                                          #missing - with 0 ?????\n",
+    "# chose 1 -may be as the installments increase than billed installement, tax increase\n",
+    "#\"numvep_cuotasinigv\", #VEP instalment ammount (PEN) without taxes\n",
+    "                                         \n",
+    "                                         \n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "\"vchbucket_mb\", #Tariff plan MB bucket\n",
+    "                                # mix of char and num\n",
+    "                                         # many buckets are there\n",
+    "                                         # label encoding can be tried\n",
+    "\n",
+    "\"vchbucket_min\", #Tariff plan minutes bucket\n",
+    "                                # mix of char and num\n",
+    "                                # many buckets are there\n",
+    "                                # label encoding can be tried\n",
+    "\n",
+    "\"vchcanaldeventa\", #Sales channel\n",
+    "                        # many are there - one hot encoding shall be tried\n",
+    "                        # missing ?????????????????????- maybe other\n",
+    "\n",
+    "#\"vchcia_departamento\", #Geographical department of the account owner (declared)\n",
+    "                        # many are there - one hot encoding shall be tried or drop\n",
+    "                        # missing ?????????????????????- maybe other\n",
+    "#\"vchcia_distrito\", #Geographical district of the  account owner (declared)\n",
+    "                    # many categories are there - drop\n",
+    "#\"vchcia_provincia\",#Geographical province of the account owner (declared)\n",
+    "                    # many categories are there - drop\n",
+    "#\"vchcia_region\", # many categories are there - drop\n",
+    "\"vchciclofacturacion\", #Billing cycle: 1 thhrough 5 (excluding 2).\n",
+    "                        # one hot maybe\n",
+    "\"vchcorreo_electronico\", #Registered email address\n",
+    "                        # flag\n",
+    "#\"vchdepartamentoventa\", #Geographical department of the sale channel\n",
+    "                        ## many categories are there - drop\n",
+    "#\"vchdistritoventa\", ##Geographical district of the sale channel\n",
+    "\"vchestadocontrato\", #Contract status: whether active, suspended or deactivated\n",
+    "                                         ## one hot\n",
+    "                                         ## Active /suspended\n",
+    "                                         ## ????????????????????????????????????????\n",
+    "\n",
+    "\"vchmodopagoorigen\", #Whether the client came from a prepaid/postpaid portability or none of both (null).\n",
+    "                        # 2 categories - one hot encoding\n",
+    "#\"vchmotivo_deac\",# Type of deactivation (Involuntary, Voluntary, Portability)\n",
+    "                                         #  null \n",
+    "                                         # handled at desactivations table with filter\n",
+    "\n",
+    "\"vchnavegacion\", #Best technology on which the devide can navigate (3g/4G/etc).\n",
+    "                    # 4g, 3g, 2g - one got encoding\n",
+    "\"vchnegocio\", #Indicates if the document is a DNI or RUC10\n",
+    "                # 2 categories - one hot encoding\n",
+    "#\"vchplanagrupado\", #Indicates if the plan is CHIP, Simple or regular plan.\n",
+    "                    ## many categories - drop\n",
+    "                    \n",
+    "#\"vchplantarifario\", #Tariff plan name\n",
+    "                      # many - drop\n",
+    "\n",
+    "                                         \n",
+    "\n",
+    "#\"vchproducto\", #Model or product adquired\n",
+    "                                # many category - drop\n",
+    "\n",
+    "#\"vchprovinciaventa\", #Geographical province of the sale channel\n",
+    "                                # many category - drop\n",
+    "#\"vchrango_antiguedadpost\", #Line antiquity expressed as intervals.\n",
+    "                            # special chars\n",
+    "\"vchrango_rentaconigv\", #Fixed charge in rent ranges\n",
+    "                        #6 cats are available , label encoding we can do\n",
+    "\"vchsegmento_blindaje\",#New line segment (Indicates if the line is elite<diamond<platinum<gold<nursery)\n",
+    "                                         # one hot encoding - 5 category\n",
+    "# chose either one of them - duplicates??????\n",
+    "#\"vchsegmento_new\", ##New line segment (Indicates if the line is elite<diamond<platinum<gold<nursery)\n",
+    "                                         # one hot encoding - 5 category\n",
+    "\n",
+    "#\"vchterritorio\", # duplicate\n",
+    "\"vchtipoequipo\", # Indicates whether the sale was chip-only or packed with a device.\n",
+    "                    # 2 categories - one hot encoding\n",
+    "\"vchtipoplan\", #Indicates if the plan is a controlled one (control) or not.\n",
+    "                    # 2 cats - one hot encoding\n",
+    "\"vchtipoventa\", #Indicates whether the line came in by portability or though a regular sale\n",
+    "                # 4 category - one hot encoding\n",
+    "\"periodo\" # filter\n",
+    "]]\n",
+    "                             )                            "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### float"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Take all the numerical columns - float\n",
+    "\n",
+    "# pd.options.display.max_rows = 400\n",
+    "pd.set_option('display.max_columns', None)\n",
+    "# list(df_per_base_post1.select_dtypes(include=['float64']).columns)\n",
+    "# float\n",
+    "li=[\"numcostointerconexionvoz\",\"numfact_adicionales\",\"numfact_contratados\",\"numroam_monto\",\"numroam_monto_voz\",\"numroam_monto_datos\",\"numroam_monto_sms\",\"numfactcont_rentabasica\",\"nummin_ent\",\"nummin_ent_externo\",\"nummin_ent_fijo\",\"nummin_ent_offnet\",\"nummin_ent_onnet\",\"nummin_sal\", \"nummin_sal_externo\", \"nummin_sal_fijo\",\"nummin_sal_offnet\",\"nummin_sal_onnet\",\"numrenta_conigv\"]\n",
+    "\n",
+    "# removing these as more nulls -\n",
+    "#\"numvep_cuotaconigv\"\n",
+    "\n",
+    "df_per_base_post1_float=df_per_base_post1[li]\n",
+    "df_per_base_post1_float.shape\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#outlier treatment\n",
+    "df_per_base_post1_float1 = df_per_base_post1_float.clip(df_per_base_post1_float.quantile(0.005), df_per_base_post1_float.quantile(0.995),axis=1)\n",
+    "\n",
+    "# df_per_base_post1_float1.describe()\n",
+    "# other way\n",
+    "# def outlier_imputation(df):\n",
+    "#     col= list(df.columns.values)\n",
+    "#     for i in col:\n",
+    "#         q1,q3=df[i].quantile([0.25,0.75])\n",
+    "#         iqr=q3-q1\n",
+    "#         ul=q3+1.5*iqr\n",
+    "#         ll=q1-1.5*iqr\n",
+    "#         df[i]=df[i].map(lambda x:ul if x>ul else x)\n",
+    "#         df[i]=df[i].map(lambda x: ll if x<ll else x)\n",
+    "#     return df \n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Float column treatments with descripencies\n",
+    "\n",
+    "#numcostointerconexionvoz -all the values are -ve, convert to +ve and use\n",
+    "df_per_base_post1_float1['numcostointerconexionvoz']=abs(df_per_base_post1_float1['numcostointerconexionvoz'])\n",
+    "\n",
+    "\n",
+    "# right skewed -keeping for now\n",
+    "#nummin_ent_fijo,nummin_sal,nummin_sal_externo ,nummin_sal_fijo\n",
+    "\n",
+    "#All 0 - keeping for now - missing value treatment with mean\n",
+    "#['numroam_monto',\"numroam_monto_voz\",'numroam_monto_datos','numroam_monto_sms','numfactcont_rentabasica']\n",
+    "\n",
+    "df_per_base_post1_float1.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# missing value treatment\n",
+    "# with median\n",
+    "# cols=[]\n",
+    "# df_3=df_3.fillna(df_3.median()[cols])\n",
+    "\n",
+    "\n",
+    "# # with mode\n",
+    "# cols\n",
+    "# df_3[cols]=df_3[cols].fillna(df_3.mode().iloc[0])\n",
+    "\n",
+    "#with mean\n",
+    "cols=['numcostointerconexionvoz','numfact_adicionales','numfact_contratados','nummin_ent','nummin_ent_externo','nummin_ent_fijo','nummin_ent_offnet','nummin_ent_onnet','nummin_sal','nummin_sal_externo','nummin_sal_fijo','nummin_sal_offnet','nummin_sal_onnet','numrenta_conigv']\n",
+    "df_per_base_post1_float1=df_per_base_post1_float1.fillna(df_per_base_post1_float1.mean()[cols])\n",
+    "\n",
+    "#All 0 - keeping for now - missing value treatment with mean\n",
+    "cols1=['numroam_monto',\"numroam_monto_voz\",'numroam_monto_datos','numroam_monto_sms','numfactcont_rentabasica']\n",
+    "df_per_base_post1_float1=df_per_base_post1_float1.fillna(df_per_base_post1_float1.mean()[cols1])\n",
+    "\n",
+    "\n",
+    "#with 0\n",
+    "# cols_0=['nummin_sal_ldi']# - 99% values are 0\n",
+    "# df_per_base_post1_float1[cols_0]=df_per_base_post1_float1[cols_0].fillna(0)\n",
+    "\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post1_float1=pd.DataFrame(df_per_base_post1_float1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post1_float1.shape"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### int"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Take all the numerical columns - int\n",
+    "# df_per_base_post1.select_dtypes(include=['int64']).columns\n",
+    "pd.set_option('display.max_columns', None)\n",
+    "#int\n",
+    "li1=['numantiguedad',\"numantiguedad_cliente\",\"numcant_cambioplan\", \"numcant_celdas\",\"numcant_consultaprevia\",\"numcant_renovacion\",\"numcant_renovacion_1m\",\"numcant_renovacion_2m\",\"numcant_renovacion_3m\",\"numcant_renovacion_6m\", \"numlineas_post\", \"numlineas_post_celular\",\"numlineas_pre\",\"numlineas_pre_celular\", \"numlineas_total\",\"numllamadas_ent\",\"numllamadas_ent_dia\",\"numllamadas_ent_noche\",\"numllamadas_sal\", \"numllamadas_sal_dia\",\"numllamadas_sal_noche\",\"numllamadas_tot\",\"numvep_cuotastotal\",\"numvep_cuotasfacturadas\"]\n",
+    "df_per_base_post1_int=df_per_base_post1[li1]\n",
+    "df_per_base_post1_int.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#outlier treatment\n",
+    "# for all numerical columns at once\n",
+    "df_per_base_post1_int1 = df_per_base_post1_int.clip(df_per_base_post1_int.quantile(0.005), df_per_base_post1_int.quantile(0.995),axis=1)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# int column treatments with descripencies\n",
+    "\n",
+    "#           -all the values are -ve, convert to +ve and use\n",
+    "#df_per_base_post1_int1['']=abs(df_per_base_post1_int1[''])\n",
+    "\n",
+    "#            --- -ve values, so remove the rows with -ve values\n",
+    "# df_per_base_post1_int1=df_per_base_post1_int1[((df_per_base_post1_int1['']>= 0)  & (df_per_base_post1_int1['']>= 0)) ]\n",
+    "\n",
+    "\n",
+    "# - right skewed \n",
+    "\n",
+    "#All 0 - keeping for now - missing value treatment with mean -below\n",
+    "#['numcant_celdas','numcant_renovacion_1m','numllamadas_ent','numllamadas_ent_dia', 'numllamadas_ent_noche', 'numllamadas_sal', 'numllamadas_sal_dia',\n",
+    "  #     'numllamadas_sal_noche', 'numllamadas_tot',]\n",
+    "    \n",
+    "# many nulls - remove these columns if more than x % missing\n",
+    "# Keeping for now\n",
+    "#['numvep_cuotastotal','numvep_cuotasfacturadas']\n",
+    "\n",
+    "df_per_base_post1_int1.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# missing value treatment\n",
+    "# with median\n",
+    "# cols=[]\n",
+    "# df_3=df_3.fillna(df_3.median()[cols])\n",
+    "\n",
+    "\n",
+    "# # with mode\n",
+    "cols1_ =['numcant_cambioplan','numlineas_post','numlineas_post_celular','numlineas_pre','numlineas_pre_celular','numvep_cuotastotal']\n",
+    "df_per_base_post1_int1[cols1_]=df_per_base_post1_int1[cols1_].fillna(df_per_base_post1_int1.mode().iloc[0])\n",
+    "\n",
+    "#with mean\n",
+    "# round up mean value\n",
+    "cols2_=['numantiguedad','numantiguedad_cliente','numlineas_total','numvep_cuotasfacturadas']\n",
+    "df_per_base_post1_int1=df_per_base_post1_int1.fillna(round(df_per_base_post1_int1.mean()[cols2_]))\n",
+    "\n",
+    "#All 0 - keeping for now - missing value treatment with mean\n",
+    "cols3_=['numcant_celdas','numcant_renovacion_1m','numllamadas_ent','numllamadas_ent_dia','numllamadas_ent_noche',\n",
+    "       'numllamadas_sal','numllamadas_sal_dia','numllamadas_sal_noche','numllamadas_tot'] \n",
+    "df_per_base_post1_int1=df_per_base_post1_int1.fillna(round(df_per_base_post1_int1.mean()[cols3_]))\n",
+    "\n",
+    "\n",
+    "#with 0 -# - 99% values are 0\n",
+    "cols_0=['numcant_consultaprevia','numcant_renovacion','numcant_renovacion_2m','numcant_renovacion_3m','numcant_renovacion_6m']\n",
+    "df_per_base_post1_int1[cols_0]=df_per_base_post1_int1[cols_0].fillna(0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post1_int1=pd.DataFrame(df_per_base_post1_int1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post1_int1.shape"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### cat"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Take all the categorical columns - cat\n",
+    "# df_per_base_post1.select_dtypes(include=['object']).columns\n",
+    "\n",
+    "#cat\n",
+    "li2=[\"cli__documento\",\"imei_hash\",\"lin__telefono\",\"numcodigoplantarifariobscs\",\"vchcanaldeventa\",\"vchciclofacturacion\",\"vchestadocontrato\",\"vchmodopagoorigen\",\"vchnavegacion\",\"vchnegocio\",\"vchsegmento_blindaje\",\"vchtipoequipo\",\"vchtipoplan\",\"vchtipoventa\"]\n",
+    "# to be removed \n",
+    "#- 'vchbucket_mb', 'vchbucket_min','vchrango_rentaconigv' # many categories, many nulls, special char\n",
+    "df_per_base_post1_cat=df_per_base_post1[li2]\n",
+    "df_per_base_post1_cat.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#outlier treatment\n",
+    "# for all numerical columns at once\n",
+    "# df_per_base_post1_cat = df_per_base_post1_cat.clip(df_per_base_post1_cat.quantile(0.005), df_per_base_post1_int.quantile(0.995),axis=1)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# cat column treatments with descripencies\n",
+    "\n",
+    "#all the values are -ve, convert to +ve and use     \n",
+    "li_=[ \"numcodigoplantarifariobscs\" ]\n",
+    "df_per_base_post1_cat[li_]=abs(df_per_base_post1_cat[li_])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# -ve values, so remove the rows with -ve values\n",
+    "# df_per_base_post1_cat=df_per_base_post1_cat[((df_per_base_post1_cat['']>= 0)  & (df_per_base_post1_cat['']>= 0)) ]\n",
+    "\n",
+    "df_per_base_post1_cat.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# missing value treatment\n",
+    "# with median\n",
+    "# cols=[]\n",
+    "# df_3=df_3.fillna(df_3.median()[cols])\n",
+    "\n",
+    "# with 'other'\n",
+    "li=['vchcanaldeventa','vchciclofacturacion','vchestadocontrato','vchmodopagoorigen','vchnavegacion','vchtipoplan']\n",
+    "df_per_base_post1_cat[li]=np.where(df_per_base_post1_cat[li].isnull()==True, 'other',df_per_base_post1_cat[li])\n",
+    "# vchciclofacturacion - remove '2'\n",
+    "\n",
+    "# # with mode\n",
+    "cols1_ =['vchnegocio','vchsegmento_blindaje','vchtipoequipo','vchtipoventa']\n",
+    "df_per_base_post1_cat[cols1_]=df_per_base_post1_cat[cols1_].fillna(df_per_base_post1_cat.mode().iloc[0])\n",
+    "\n",
+    "\n",
+    "#with mean\n",
+    "# round up mean value\n",
+    "# cols2_=[]\n",
+    "# df_per_base_post1_cat=df_per_base_post1_cat.fillna(round(df_per_base_post1_cat.mean()[cols2_]))\n",
+    "\n",
+    "\n",
+    "#All 0 - keeping for now - missing value treatment with mean\n",
+    "# cols3_=[] \n",
+    "# df_per_base_post1_cat=df_per_base_post1_cat.fillna(round(df_per_base_post1_cat.mean()[cols3_]))\n",
+    "\n",
+    "\n",
+    "#with 0 -# \n",
+    "# cols_0=['vchbucket_mb','vchbucket_min'] - removed as they have manyyyy categories\n",
+    "# df_per_base_post1_cat1[cols_0]=df_per_base_post1_cat1[cols_0].fillna(0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# One hot encoding / label encoding\n",
+    "\n",
+    "# one hot encoding -\n",
+    "feature_to_encode=['numcodigoplantarifariobscs','vchcanaldeventa','vchciclofacturacion','vchestadocontrato','vchmodopagoorigen','vchnavegacion','vchnegocio','vchsegmento_blindaje','vchtipoequipo','vchtipoplan','vchtipoventa']\n",
+    "\n",
+    "df_per_base_post1_cat2 = pd.get_dummies(df_per_base_post1_cat, columns=feature_to_encode, drop_first=True)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#LABEL ENCODING -\n",
+    "#['vchbucket_mb'] # based on sorted bands\n",
+    "# not using for now\n",
+    "\n",
+    "\n",
+    "#  right skewed \n",
+    "\n",
+    "\n",
+    "#All 0 - keeping for now - missing value treatment with mean -below\n",
+    "#['numcant_celdas','numcant_renovacion_1m','numllamadas_ent','numllamadas_ent_dia', 'numllamadas_ent_noche', 'numllamadas_sal', 'numllamadas_sal_dia',\n",
+    "#     'numllamadas_sal_noche', 'numllamadas_tot',]\n",
+    "    \n",
+    "# many nulls - remove these columns if more than x % missing\n",
+    "# Keeping for now\n",
+    "#[vchbucket_mb,'vchbucket_min']\n",
+    "\n",
+    "df_per_base_post1_cat2.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post1_cat2=pd.DataFrame(df_per_base_post1_cat2)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### flags`"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# take all the flags cols\n",
+    "\n",
+    "li4=['nummin_sal_ldi',\"numfact_roaming\",\"numflag_migprepost\",\"numflag_migprepost_1m\",\"numflag_migprepost_2m\",\"numflag_migprepost_3m\",\"numflag_migprepost_6m\",\"numflag_renovacion\",\"numflag_renovacion_1m\",\"numflag_renovacion_2m\",\"numflag_renovacion_3m\",  \"numflag_renovacion_6m\",\"numsuspmora_12m\",\"numsuspmora_1m\",\"numsuspmora_3m\",\"numsuspmora_6m\",\"numsusprobo_12m\",\"numsusprobo_1m\",\"numsusprobo_3m\",\"numsusprobo_6m\",\"numflag_consultaprevia_6m\",\"numflag_occ\",\"numfact_occ_ac\",\"numfact_occ_otros\",\"numflag_roam\",\"numflag_roam_7d\",\"numflag_roam_consumo\",\"numfactadic_contenidodig\", \"numfactadic_datos_navegador\",\"numfactadic_mensajeria\",\"numfactadic_voz_interconexion\",\"numfactadic_voz_ldi\",\"numfactadic_voz_ldn_rural\", \"numfactcont_garantia\",\"numfactcont_trafico3g\",\"numflag_arm\",\"numflag_downselling_1m\",\"numflag_downselling_2m\",\"numflag_downselling_3m\",\"numflag_downselling_6m\",\"numflag_dsctolineaadic\",\"numflag_empleado\",\"numflag_gni\",\"numflag_lpdp\",\"numflag_trafdatos_mayor100mb\",\"numflag_trafico_1m\",\"numflag_trafico_2m\",\"numflag_trafico_3m\",\"numflag_trafico_6m\", \"numflag_trafsal_mayor1000min\",\"numflag_trafsal_menor20min\",\"numflag_upselling_1m\", \"numflag_upselling_2m\",\"numflag_upselling_3m\",\"numflag_upselling_6m\",\"numflag_vep\",\"nummb_applemusic\", \"nummb_facebook\", \"nummb_gratuito\",\"nummb_instagram\",\"nummb_mail\",\"nummb_pagado\",\"nummb_soundcloud\", \"nummb_spotify\",\"nummb_total\",\"nummb_whatsapp\", \"nummb_youtube\",\"vchcorreo_electronico\"]\n",
+    "df_per_base_post1_flag=df_per_base_post1[li4]\n",
+    "\n",
+    "#more cols to be aded\n",
+    "#\"numfact_roaming\", #Billed for roaming total\n",
+    "                                         # 8-9 unique values -99%-0 #??????????????? when all roaming is 0, how this has values\n",
+    "                                         #flag"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#vchcorreo_electronico - check whether the customer has a valid email id - then make flag\n",
+    "# code to check valid email id - \n",
+    "#********************************************\n",
+    "\n",
+    "# converting the numerical to flags as they have fewer unique values\n",
+    "cols=['numfact_roaming','numsuspmora_12m','numsuspmora_1m','numsuspmora_3m','numsuspmora_6m','numsusprobo_12m','numsusprobo_1m',\n",
+    "     'numsusprobo_3m','numsuspmora_6m','numfact_occ_otros','numfactadic_contenidodig','numfactadic_datos_navegador','numfactadic_mensajeria',\n",
+    "     'numfactadic_voz_interconexion','numfactadic_voz_ldi','numfactadic_voz_ldn_rural','numfactcont_garantia','numfactcont_trafico3g',\n",
+    "     'nummb_applemusic','nummb_facebook','nummb_gratuito','nummb_instagram','nummb_mail','nummb_pagado','nummb_soundcloud',\n",
+    "     'nummb_spotify','nummb_total','nummb_whatsapp','nummb_youtube',\"nummin_sal_ldi\"]\n",
+    "      #'vchcorreo_electronico']\n",
+    "\n",
+    "\n",
+    "\n",
+    "for features in cols:\n",
+    "    df_per_base_post1_flag[features]=np.where(df_per_base_post1_flag[features]==0,0,1)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#missing value treatment and descrepency\n",
+    "\n",
+    "#with mode\n",
+    "cols_=['numfact_roaming','numflag_migprepost','numflag_migprepost_1m',\"numflag_migprepost_2m\",'numflag_migprepost_3m','numflag_migprepost_6m',\n",
+    "     'numflag_renovacion','numflag_renovacion_1m','numflag_renovacion_2m','numflag_renovacion_3m','numflag_renovacion_6m','numsuspmora_12m','numsuspmora_1m',\n",
+    "     'numsuspmora_3m','numsuspmora_6m','numsusprobo_12m','numsusprobo_3m','numflag_consultaprevia_6m','numflag_occ','numfact_occ_ac',\n",
+    "     'numfact_occ_otros','numflag_roam','numflag_roam_7d','numflag_roam_consumo','numfactadic_contenidodig','numfactadic_datos_navegador',\n",
+    "     'numfactadic_mensajeria','numfactadic_voz_interconexion','numfactadic_voz_ldi','numfactadic_voz_ldn_rural','numfactcont_garantia',\n",
+    "     'numfactcont_trafico3g','numflag_arm','numflag_downselling_1m','numflag_downselling_2m','numflag_trafico_3m','numflag_downselling_6m',\n",
+    "     'numflag_dsctolineaadic','numflag_dsctolineaadic','numflag_empleado','numflag_gni','numflag_lpdp','numflag_trafdatos_mayor100mb',\n",
+    "     'numflag_trafico_1m','numflag_trafico_2m','numflag_trafico_3m','numflag_trafico_6m','numflag_trafsal_mayor1000min',\n",
+    "     'numflag_trafsal_menor20min','numflag_upselling_1m','numflag_upselling_2m','numflag_upselling_3m','numflag_upselling_6m','numflag_vep',\n",
+    "     'nummb_applemusic','nummb_facebook','nummb_gratuito','nummb_instagram','nummb_mail','nummb_pagado','nummb_soundcloud',\n",
+    "     'nummb_spotify','nummb_total','nummb_whatsapp','nummb_youtube']\n",
+    "\n",
+    "df_per_base_post1_flag[cols_]=df_per_base_post1_flag[cols_].fillna(df_per_base_post1_flag.mode().iloc[0])\n",
+    "\n",
+    "\n",
+    "# all 0 - keeping for now\n",
+    "# cols=['numflag_migprepost_1m','numflag_consultaprevia_6m','numflag_occ','numfact_occ_ac','numflag_roam','numflag_roam_7d',\n",
+    "#      'numflag_roam_consumo','numfactadic_contenidodig','numfactadic_datos_navegador','numfactadic_mensajeria','numfactadic_voz_ldi',\n",
+    "#      'numfactadic_voz_ldn_rural','numfactcont_trafico3g','numflag_dsctolineaadic','numflag_dsctolineaadic','numflag_gni',\n",
+    "#      'numflag_trafdatos_mayor100mb','numflag_trafico_1m','numflag_trafico_2m','nummb_applemusic','nummb_facebook','nummb_gratuito',\n",
+    "#      'nummb_mail','nummb_pagado','nummb_soundcloud','nummb_spotify','nummb_total','nummb_whatsapp','nummb_youtube']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post1_flag=pd.DataFrame(df_per_base_post1_flag)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post1_flag.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Date columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# take all the dates\n",
+    "li5=[\"fecmigprepost\",\"fecultimocambioeqp\",\"fecvep_orden\",\"periodo\"]\n",
+    "df_per_base_post1_dates=df_per_base_post1[li5]\n",
+    "df_per_base_post1_dates.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# \"fecmigprepost\", #Date on which the last migration from pre to post of the account occured #-- extract months from it,\n",
+    "                                         #missing- to filled with 99\n",
+    "df_per_base_post1_dates['fecmigprepost']=pd.to_datetime(df_per_base_post1_dates.fecmigprepost).dt.month\n",
+    "\n",
+    "\n",
+    "# \"fecultimocambioeqp\", # Date of the last change of device-- extract months\n",
+    "                                         #missing - \"numantiguedad_cliente\"-(measured as the antiquity of the oldest line associated with the client)(months)\n",
+    "                                        # or with 99\n",
+    "df_per_base_post1_dates['fecultimocambioeqp']=pd.to_datetime(df_per_base_post1_dates.fecultimocambioeqp).dt.month\n",
+    "\n",
+    "\n",
+    "#\"fecvep_orden\", #Date of the VEP order - flag y/n\n",
+    "                                         #missing - n\n",
+    "df_per_base_post1_dates['fecvep_orden'] = np.where(df_per_base_post1_dates['fecvep_orden'].isnull()==True, 0,1)\n",
+    "\n",
+    "#periodo is periodo\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# missing value\n",
+    "\n",
+    "#impute with 99\n",
+    "cols=['fecmigprepost','fecultimocambioeqp']\n",
+    "\n",
+    "df_per_base_post1_dates['fecmigprepost'] = np.where(df_per_base_post1_dates['fecmigprepost'].isnull()==True, 99,df_per_base_post1_dates['fecmigprepost'])\n",
+    "df_per_base_post1_dates['fecultimocambioeqp'] = np.where(df_per_base_post1_dates['fecultimocambioeqp'].isnull()==True, 99,df_per_base_post1_dates['fecultimocambioeqp'])  "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post1_dates = pd.DataFrame(df_per_base_post1_dates)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### concatenating all the dataset"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# df_per_base_post1_float1 , df_per_base_post1_int1, df_per_base_post1_cat2, df_per_base_post1_flag, df_per_base_post1_dates\n",
+    "df_tot=pd.concat([df_per_base_post1_float1 , df_per_base_post1_int1, df_per_base_post1_cat2, df_per_base_post1_flag, df_per_base_post1_dates], axis=1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_tot.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(list(df_tot.isnull().sum()))\n",
+    "# vchcorreo_electronico - needs to be handled as flag - correct email address  -1, 0"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#removing rows with decreapancy values"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# # #float\n",
+    "# # #remove the rows with -ve values\n",
+    "# # #['nummin_ent_onnet','nummin_sal_onnet'] -\n",
+    "# df_tot=df_tot[((df_tot['nummin_ent_onnet']>= 0)  & (df_tot['nummin_sal_onnet']>= 0)) ]\n",
+    "\n",
+    "# # #remove rows with missing values\n",
+    "# # # numfact_contratados -#Total billed ammount in the contracted tariff plan -  \n",
+    "# df_tot=df_tot[(df_tot['numfact_contratados'].isnull()==False)]\n",
+    "\n",
+    "\n",
+    "# # #int\n",
+    "# # #  remove rows with missing values\n",
+    "# cols1__=['numantiguedad' ,'numantiguedad_cliente','numlineas_post','numlineas_post_celular','numlineas_pre' ,'numlineas_total' ,\n",
+    "#          'numllamadas_ent' ,'numllamadas_ent_noche' ,'numllamadas_sal','numllamadas_sal_dia','numllamadas_sal_noche','numllamadas_tot' ] \n",
+    "# df_tot=df_tot[(df_tot[cols1__].isnull()==False)]\n",
+    "\n",
+    "\n",
+    "# # #cat\n",
+    "# # #  remove rows with missing values\n",
+    "# cols1=['cli__documento', 'imei_hash', 'lin__telefono'] \n",
+    "# df_tot=df_tot[(df_tot['cli__documento'].isnull()==False) & (df_tot['imei_hash'].isnull()==False) & (df_tot['numcodigoplantarifariobscs'].isnull()==False) & (df_tot['vchestadocontrato'].isnull()==False)]\n",
+    "\n",
+    "\n",
+    "## all together\n",
+    "df_tot1=df_tot[(\n",
+    "    (df_tot['nummin_ent_onnet']>= 0)  & (df_tot['nummin_sal_onnet']>= 0) &\n",
+    "    (df_tot['numfact_contratados'].isnull()==False) &\n",
+    "    (df_tot['numantiguedad'].isnull()==False) & (df_tot['numantiguedad'].isnull()==False) & (df_tot['numantiguedad_cliente'].isnull()==False) &\n",
+    "    (df_tot['numlineas_post'].isnull()==False) &  (df_tot['numlineas_post_celular'].isnull()==False) &  (df_tot['numlineas_post_celular'].isnull()==False) &\n",
+    "     (df_tot['numlineas_pre'].isnull()==False) &  (df_tot['numlineas_total'].isnull()==False) & (df_tot['numllamadas_ent'].isnull()==False) &\n",
+    "    (df_tot['numllamadas_ent_noche'].isnull()==False) &  (df_tot['numllamadas_sal'].isnull()==False) & (df_tot['numllamadas_sal_dia'].isnull()==False) &\n",
+    "    (df_tot['numllamadas_sal_noche'].isnull()==False) &  (df_tot['numllamadas_sal_noche'].isnull()==False) & (df_tot['numllamadas_tot'].isnull()==False) &\n",
+    "    (df_tot['cli__documento'].isnull()==False) & (df_tot['imei_hash'].isnull()==False) \n",
+    "    ) ]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_tot1.isnull().shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "################# till here ###################"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### IDN_CONSULTA_PREVIA_20210101 .csv - no column definitions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con=pd.read_csv(\"C:/Users/MalikM/OneDrive -  Group/Documents/CVM TEAM -PUNE/PARTNER MARKETs/PERU/PERU CHURN/DATA/Actual_Data/IDN_CONSULTA_PREVIA_20210101.csv\", nrows=700000)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# df_per_base_post\n",
+    "# df_des\n",
+    "# df_per_int\n",
+    "df4=df_idn_con.loc[:,[\n",
+    "'fec_registro_ecpc', #Date of CP \n",
+    "    # extract months\n",
+    "    #int\n",
+    "    #missing - round(mean)\n",
+    "    \n",
+    "\n",
+    "#'id_proceso', #id CP\n",
+    "    # id - relevant ????????\n",
+    "\n",
+    "#'indicador_ne', # 99.9% are null \n",
+    "                # rest - o.1% with NE value\n",
+    "                # could be removed - using as a flag for now\n",
+    "    \n",
+    "'motivo',#Rejection motive\n",
+    "    #missing- 'other'\n",
+    "    #one hot\n",
+    "\n",
+    "'cli__documento', #Client document\n",
+    "    #cat - remove with missing value\n",
+    "\n",
+    "'lin__telefono',#Telephone number\n",
+    "    #cat - remove with missing value\n",
+    "\n",
+    "#'operador_donante', #Donor operator\n",
+    "    # remove as 99.9% value are same\n",
+    "\n",
+    "'operador_receptor', #Receptive operator \n",
+    "    # cat - one hot encoding\n",
+    "    #missing - mode\n",
+    "\n",
+    "'rspta_cedente', #Donor response \n",
+    "    #cat - one-hot encoding\n",
+    "    # missing value with 'NO RESPONDIO'\n",
+    "\n",
+    "'tipo_documento', #Document type\n",
+    "    # cat - one hot encoding\n",
+    "    # missing value - mode\n",
+    "\n",
+    "'tipo_portabilidad', #Portability type\n",
+    "    # cat (with special char)\n",
+    "    #one hot encoding\n",
+    "    \n",
+    "\n",
+    "'periodo' #period\n",
+    "]]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con.indicador_ne.nunique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con.drop_duplicates(['id_proceso'], keep='first').shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# df_idn_con[df_idn_con.duplicated()]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con[df_idn_con.duplicated(['cli__documento','lin__telefono','id_proceso','fec_registro_ecpc','operador_receptor','rspta_cedente','tipo_documento','tipo_portabilidad'])]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con.tipo_documento.nunique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con.cli__documento.nunique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "df_idn_con.tipo_documento.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con[(df_idn_con['lin__telefono']=='21cd86b971431588384d52275ee124745b9d2485e6de05ba8cf16c80219d7ed5')].sort_values(['fec_registro_ecpc','id_proceso'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con.lin__telefono.nunique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con.groupby(['cli__documento', 'lin__telefono', 'periodo'])[['fec_registro_ecpc']].nunique().sort_values(by='fec_registro_ecpc', ascending=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_idn_con[df_idn_con.lin__telefono=='91afc1c079e30c94dfa86ceb755c3f6694b5f37a794c0ae59b8b0422856cd797']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df4.tipo_portabilidad.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# decreapancy \n",
+    "df4['fec_registro_ecpc']=pd.to_datetime(df4.fec_registro_ecpc).dt.month"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# missing value treatments\n",
+    "\n",
+    "#round(mean)\n",
+    "# cols2=['fec_registro_ecpc']\n",
+    "# df_per_base_post1_cat=df_per_base_post1_cat.fillna(round(df_per_base_post1_cat.mean()[cols2_]))\n",
+    "df4=df4.fillna(round(df4['fec_registro_ecpc'].mean()))\n",
+    "\n",
+    "# With mode\n",
+    "cols=['operador_receptor','tipo_documento','tipo_portabilidad']\n",
+    "df4[cols]=df4[cols].fillna(df4.mode().iloc[0])\n",
+    "\n",
+    "#with other values\n",
+    "# ['motivo']#missing- 'other'\n",
+    "df4['motivo']=np.where(df4['motivo'].isnull()==True, 'other',df4['motivo'])\n",
+    "# 'rspta_cedente', #Donor response     # missing value with 'NO RESPONDIO'\n",
+    "df4['rspta_cedente']=np.where(df4['rspta_cedente'].isnull()==True, 'NO RESPONDIO',df4['rspta_cedente'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# one hot encodings\n",
+    "\n",
+    "feature_to_encode=['motivo','operador_receptor','operador_receptor','rspta_cedente','tipo_documento','tipo_portabilidad']\n",
+    "#one hot\n",
+    "df4 = pd.get_dummies(df4, columns=feature_to_encode, drop_first=True)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "# remove rows with missing values\n",
+    "cols=['cli__documento','lin__telefono']\n",
+    "df4=df4.loc[(df4.cli__documento.isnull()==False) & (df4.lin__telefono.isnull()==False)]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df4.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "import pandas as pd\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### per_interacciones_20210101.csv - interactions of out clients with us, through  any channel. May be interactions for a consultation, an order or a claim"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "df_per_int = pd.read_csv(\"C:/Users/MalikM/OneDrive -  Group/Documents/CVM TEAM -PUNE/PARTNER MARKETs/PERU/PERU CHURN/DATA/Actual_Data/per_interacciones_20210101.csv\", nrows=300000)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_int.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# df_per_base_post\n",
+    "# df_des\n",
+    "df3=df_per_int.loc[:,[\n",
+    "'feccierre', #Operation close date\n",
+    "            # \n",
+    "            #missing - round(mean)\n",
+    "\n",
+    "'feccreacion', #Operation creation date\n",
+    "            # \n",
+    "            # missing - round(mean)\n",
+    "\n",
+    "#     feccreacion-feccierre in days\n",
+    "    \n",
+    "'cli__documento',#Document client\n",
+    "            # cat\n",
+    "            # remove rows with missing\n",
+    "\n",
+    "'lin__telefono',#Phone number \n",
+    "            # cat\n",
+    "            #removes rowms with missing\n",
+    "\n",
+    "'nummonto',#Amount paid \n",
+    "            # flag - for 0 -0 else 1\n",
+    "            #missing - mode\n",
+    "            # \n",
+    "\n",
+    "'vchcanal', #Channel\n",
+    "            #cat - one hot encoding\n",
+    "            # missing -other\n",
+    "\n",
+    "'vchcategoria',#Category \n",
+    "            # missing value -mode\n",
+    "            #cat - one hot\n",
+    "\n",
+    "'vchclase',#Class\n",
+    "            # missing - mode\n",
+    "            # cat - one hot\n",
+    "\n",
+    "'vchestado',#Status \n",
+    "            # missing - mode\n",
+    "            # cat - one hot\n",
+    "\n",
+    "#'vchmodelo',#Model  -- 5000 category of handset models\n",
+    "\n",
+    "'vchmodopago',#Payment type\n",
+    "            #missing - mode\n",
+    "            # cat - one hot\n",
+    "\n",
+    "'vchmotivo',#Motive -- 50 unique categories\n",
+    "            # missing - mode\n",
+    "            # cat - with many category -- one hot\n",
+    "            # least used could be binned to other category\n",
+    "\n",
+    "'vchplantarifario',#Tariff plan \n",
+    "            # missing - mode\n",
+    "            # cat - one hot - but have 79 category\n",
+    "            #least used could be binned to other\n",
+    "\n",
+    "'vchsegmento_atencion',#Attention segment\n",
+    "            # missing - mode\n",
+    "            # cat - one hot\n",
+    "\n",
+    "#'vchsubcategoria',#Subcategory --300+ categories -- removing for now\n",
+    "            # missing - mode\n",
+    "            # cat - one hot but 300+ category - least used could be binned to other\n",
+    "\n",
+    "'vchtipo',#Type - 10 categories\n",
+    "            # missing - mode\n",
+    "            # cat - one hot\n",
+    "\n",
+    "'vchtipo_interaccion',#Interaction type -5/6 caategories\n",
+    "            # missing - mode\n",
+    "            # cat - one hot\n",
+    "\n",
+    "'vchtipo_plan',#Plan type - 4 category\n",
+    "            # missing-  mode\n",
+    "            # cat- one hot\n",
+    "\n",
+    "'vchusuario',#User --5600 category - leaving for now\n",
+    "            # missing - others\n",
+    "            # cat - one hot - but have 5000+, least used could be binned to others\n",
+    "\n",
+    "'periodo'\n",
+    "]]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df3.vchusuario.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df3.vchcategoria.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df3[(df3.lin__telefono =='76aaf2484a1fa1d0d3540f182b074a380f4dd19eb04c2179c7403cd59cea5e35')].sort_values(by='feccreacion')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df3[df3.duplicated(['cli__documento','lin__telefono','periodo', 'feccierre' , 'feccreacion','vchcanal','vchcategoria'])]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# descrepency\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#outlier"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# missing value treatments\n",
+    "\n",
+    "#round(mean)\n",
+    "# cols2=['']\n",
+    "# # df_per_base_post1_cat=df_per_base_post1_cat.fillna(round(df_per_base_post1_cat.mean()[cols2_]))\n",
+    "# df4=df4.fillna(round(df4[''].mean()))\n",
+    "\n",
+    "# With mode\n",
+    "cols=['nummonto','vchcategoria','vchclase','vchestado','vchmodopago','vchmotivo','vchplantarifario','vchsegmento_atencion',\n",
+    "      'vchtipo','vchtipo_interaccion','vchtipo_plan']\n",
+    "df3[cols]=df3[cols].fillna(df3.mode().iloc[0])\n",
+    "\n",
+    "#with other values\n",
+    "# ['vchcanal']#missing- 'other'\n",
+    "df3['vchcanal']=np.where(df3['vchcanal'].isnull()==True, 'other',df3['vchcanal'])\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# one hot encodings\n",
+    "\n",
+    "feature_to_encode=['vchcanal','vchcategoria','vchclase','vchestado','vchmodopago','vchmotivo','vchplantarifario','vchsegmento_atencion','vchtipo','vchtipo_interaccion','vchtipo_plan']\n",
+    "#one hot\n",
+    "df3 = pd.get_dummies(df3, columns=feature_to_encode, drop_first=True)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#flags\n",
+    "df3.nummonto=np.where(df3.nummonto>0,1,0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "# remove rows with missing values\n",
+    "cols=['cli__documento','lin__telefono']\n",
+    "df3=df3.loc[(df3.cli__documento.isnull()==False) & (df3.lin__telefono.isnull()==False)]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df3.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#### analysis to Sourav"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df3.lin__telefono.value_counts() # 50 categories for vchmotivo"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df3.lin__telefono.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df4=df3.loc[~(df3['lin__telefono']=='e39c9c4728c8d5dfa1ca00370d8cf03c083b42786466457f1f6a8022217aeb87'),:] # fake acccount - have visited 2lakh times"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df4.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df4.lin__telefono.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df3.df3['lin__telefono','vchcanal','vchestado'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "dd=pd.DataFrame(df4.groupby(['lin__telefono','vchcanal','vchestado'])['lin__telefono'].count().sort_values())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "dd.head()\n",
+    "# dd.columns=['lin__telefono','vchcanal','vchestado','count']\n",
+    "# dd.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_last_15=df4.loc[df4['feccreacion']>'2021-01-15 00:00:00',:]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# pd.concat([df_last_15, df_des], axis=1, join='inner', on='lin__telefono')\n",
+    "df_last_15_merged=pd.merge(df_last_15, df_des, on='lin__telefono', how='inner')\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_last_15_merged.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_last_15_merged.groupby(['vchcanal'])['lin__telefono'].count().sort_values()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_last_30_merged=pd.merge(df4, df_des, on='lin__telefono', how='inner')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_last_30_merged.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_last_30_merged.groupby(['vchcanal'])['lin__telefono'].count().sort_values()/df_last_30_merged.shape[0]*100"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### IDN_DESACTIVACIONES_20210201.csv - # column definitions are not present"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# IDN_DESACTIVACIONES_20210201.csv\n",
+    "df2 = pd.read_csv(\"C:/Users/MalikM/OneDrive - Group/Documents/CVM TEAM -PUNE/PARTNER MARKETs/PERU/PERU CHURN/DATA/Actual_Data/IDN_DESACTIVACIONES_20210201.csv\", nrows=700000)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "##inscope\n",
+    "# 'motivo_deacs']=='VOLUNTARIO' and\n",
+    "#  ['motivo']=='PORTABILIDAD'"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_des=df2[(df2['motivo_deacs']=='VOLUNTARIO') & (df2['motivo']=='PORTABILIDAD')]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(df2.shape, df_des.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_des.lin__telefono.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_des.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_des.motivo_deacs.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_des.motivo.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_des.groupby(['motivo_deacs','modopago','motivo','grupo_movimiento']).count() #which ones to be inscope"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_des.groupby(['motivo_deacs','modopago','motivo','grupo_movimiento']).count() #which ones to be inscope"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_des.motivo.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### per_tablon_20210101.csv -"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df5=pd.read_csv(\"C:/Users/MalikM/OneDrive -  Group/Documents/CVM TEAM -PUNE/PARTNER MARKETs/PERU/PERU CHURN/DATA/Actual_Data/per_m002_tablon_202103_q1_b_20210101.csv\", nrows=300000)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# df_per_base_post\n",
+    "# df_des\n",
+    "# df_per_int\n",
+    "# df_idn_con\n",
+    "df_per_tablon=df5"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df5.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### per_ticketera_20210101.csv"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_tic=pd.read_csv(\"C:/Users/MalikM/OneDrive -  Group/Documents/CVM TEAM -PUNE/PARTNER MARKETs/PERU/PERU CHURN/DATA/Actual_Data/per_ticketera_20210101.csv\", nrows=300000)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df6=df_per_tic"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df6.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df6.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df7=df6.loc[:,[\n",
+    "    'aba', #\t- \n",
+    "            #Flag\n",
+    "            # missing- mode\n",
+    "    \n",
+    "#'agencia', #\tAgency visited\n",
+    "            # many agencies - leave for now\n",
+    "    \n",
+    "'canal', #\tChannel / tipe of agency \n",
+    "            # 2 categories\n",
+    "            #missing - mode\n",
+    "            # cat - one hot\n",
+    "    \n",
+    "'categoria', #\tClient category\n",
+    "        # cat - 4/5 categories\n",
+    "        #missing - mode\n",
+    "        # one hot\n",
+    "    \n",
+    "#'codigo',#\tCode of attention \n",
+    "        #- many codes -leaving\n",
+    "    \n",
+    "'departamento',#\tDepertment (geographical) \n",
+    "        # cat \n",
+    "        #missing - mode\n",
+    "        # one hot\n",
+    "    \n",
+    "#'descripcion',#\tDescription channel\n",
+    "        # only 1 category - leaving for now\n",
+    "    \n",
+    "#'div_tr', #\tTerritory division\n",
+    "        # many category - leaving for now\n",
+    "    \n",
+    "'estado', #\tVisit status\n",
+    "        # create flag as 99% has one value\n",
+    "        # missing - mode\n",
+    "    \n",
+    "'fecha',#\tDate of visit\n",
+    "    # days since last visit - column creation\n",
+    "    #keeping as it is for now\n",
+    "    \n",
+    "'horaasignacion',#\tAsignation hour\n",
+    "    \n",
+    "'horafinatecion', #\tHour: End of atention\n",
+    "#horafinatecion-horaasignacion -- time to resolve\n",
+    "    \n",
+    "    \n",
+    "#'horageneracion',#\tHour: generation of the atention\n",
+    "    \n",
+    "#'horainicioatencion', #\tHour: Start of atention\n",
+    "\n",
+    "    \n",
+    "'min15', #\tAtention lasts 15 min\n",
+    "    # flag\n",
+    "    #missing - mode\n",
+    "    \n",
+    "'cli__documento', #\tClient document\n",
+    "    \n",
+    "#'observacion', #\tObservation\n",
+    "    \n",
+    "'puesto',#\tAsessor position\n",
+    "    # cat\n",
+    "    #missing- mode\n",
+    "    #one hot\n",
+    "    \n",
+    "'segmento',#\tClient segment \n",
+    "    # CAT-  one hot\n",
+    "    #missing - mode\n",
+    "    \n",
+    "'ssnn',#\tBusiness partnet\n",
+    "    #cat -one hot\n",
+    "    # miossing - mode\n",
+    "    \n",
+    "'t_espera_15', #\tWait time 15 minutes\n",
+    "    # flag\n",
+    "    #Missing - mode\n",
+    "    \n",
+    "'texp', #\tTime at store\n",
+    "    # binning needs to be done 1hour, 2 hour, 3 hour..5 hours, 5+ hours\n",
+    "    #missing - mode after binning\n",
+    "    # one hot encoding\n",
+    "    # keeping as it is for now\n",
+    "    \n",
+    "#'ticket',#\tTicket number\n",
+    "    \n",
+    "#'ticket1', #\tTicket number\n",
+    "    \n",
+    "'tiempoatencion',#\tAttention time\n",
+    "    # extract hour from it\n",
+    "    # missing - mode\n",
+    "    #keeping as it for now\n",
+    "    \n",
+    "'tiempoesperapreasignacion', #\tWaiting time for asignation\n",
+    "    # extract hour from it\n",
+    "    # missing - mode\n",
+    "    #keeping as it for now\n",
+    "    \n",
+    "'tiempoesperapreatencion', #\tWaiting time fot attention\n",
+    "    # extract hour from it\n",
+    "    # missing - mode\n",
+    "    #keeping as it for now\n",
+    "    \n",
+    "'tiempoesperatotal', #\tTotal waiting time \n",
+    "    # extract hour from it\n",
+    "    # missing - mode\n",
+    "    #keeping as it for now\n",
+    "    \n",
+    "'tiempopostatencion',#\tPost attention time\n",
+    "    # extract hour from it\n",
+    "    # missing - mode\n",
+    "    #keeping as it for now\n",
+    "    \n",
+    "'tipo_ticket',# \tTicket type\n",
+    "    #cat - one hot\n",
+    "    #missing - mode\n",
+    "    \n",
+    "#'tipoasesor', #\tAssesor type - majority null\n",
+    "    \n",
+    "#'tipohorario', #\tHour type - majority null\n",
+    "    \n",
+    "'tipotickets', #\tTicket type\n",
+    "    # importsnt col - but 200+ categories\n",
+    "    # cat - one hot\n",
+    "    #missing - mode\n",
+    "    # binning could be done - keeping for now\n",
+    "    \n",
+    "'tipov', #\tVisit type\n",
+    "    # flag \n",
+    "    #missing - mode\n",
+    "    \n",
+    "'tipoventanilla', #\tCounter type\n",
+    "    \n",
+    "#'totaltick', #\tTotal tick -- alll 1\n",
+    "    \n",
+    "'tr',# \tTerritory\n",
+    "    #flag\n",
+    "    # issing - mode\n",
+    "    \n",
+    "#'ventanilla',#\tCounter number\n",
+    "    \n",
+    "'periodo' #\tMonth\n",
+    "\n",
+    "]]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df7.tr.value_counts()/df7.shape[0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df7.aba.value_counts()/df7.shape[0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#date column converstions\n",
+    "\n",
+    "df7['tiempoatencion']=pd.to_datetime(df7['tiempoatencion'], format='%H:%M:%S').dt.hour\n",
+    "df7['tiempoesperapreasignacion']=pd.to_datetime(df7['tiempoatencion'], format='%H:%M:%S').dt.hour\n",
+    "tiempoesperapreatencion\n",
+    "tiempoesperatotal\n",
+    "tiempopostatencion"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# flag -\n",
+    "['aba','estado','min15','t_espera_15','tipov','tr']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#missing -\n",
+    "\n",
+    "#mode\n",
+    "cols=['aba','canal','categoria','departamento','estado','min15','puesto'],'segmento','ssnn','t_espera_15',\n",
+    "'tiempoatencion','tiempoesperapreasignacion','tiempoesperapreatencion','tiempoesperatotal','tiempopostatencion',\n",
+    "'tipo_ticket','tipov','tipoventanilla','tr'"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#one hot\n",
+    "cols=['canal','categoria','departamento','puesto','segmento','ssnn','tipo_ticket','tipoventanilla']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### smartcare"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "df_red_smart = pd.read_csv(\"C:/Users/MalikM/OneDrive -  Group/Documents/CVM TEAM -PUNE/PARTNER MARKETs/PERU/PERU CHURN/DATA/Actual_Data/RED_SMARTCARE_MES_20210101.csv\", nrows=400000)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_red_smart.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_red_smart.dtypes"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df=df_red_smart.loc[:,[\n",
+    "'cant_pagina', #- quentiy of times of page visit\n",
+    "#                 in this month\n",
+    "#                 as the counts goes till 6000 - in a month - 6000 page visits -------- false traffic generator\n",
+    "#                 6073 unique\n",
+    "#             int\n",
+    "            \n",
+    "'dw_throughput_mb', #- download mb\n",
+    "#                     many lakhs unique values - \n",
+    "#     float - right skewed - outliers\n",
+    "\n",
+    "'lin__telefono', #- phone number \n",
+    "\n",
+    "'num_dias', #- number of days of page visits\n",
+    "#         upto 30 - monthly\n",
+    "#             binning could be done - for 0-5 -low,5-15 - mid ,15-25 - high  25+ very high\n",
+    "#         cat\n",
+    "\n",
+    "'pagina', #- web page visited\n",
+    "#             10 sites\n",
+    "#         cat\n",
+    "\n",
+    "'ul_throughput_mb',#- upload mb \n",
+    "#                     many lakhs unique values - \n",
+    "#     float - right skewed - outliers\n",
+    "\n",
+    "\n",
+    "'periodo', # - month \n",
+    "\n",
+    "'prot_category' #- protocol category\n",
+    "#             2 ctegoris\n",
+    "#     cat\n",
+    "\n",
+    "]]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.lin__telefono.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df[df['lin__telefono']=='a8d3fbda86c129abbba3238c6cae4ddebf1ce5dcb7b37a609dbb0f313811b284']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.pagina.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# descrepencies\n",
+    "\n",
+    "#remove rows with missing values\n",
+    "# cols=['lin__telefono','pagina']\n",
+    "df= df.dropna( how='any',subset=['lin__telefono','pagina'])\n",
+    "\n",
+    "\n",
+    "# outlier removal\n",
+    "cols1=['cant_pagina','dw_throughput_mb','ul_throughput_mb']\n",
+    "\n",
+    "df[cols1]=df.clip(df.quantile(0.005), df.quantile(0.995),axis=1)[cols1]\n",
+    "\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# missing value treatment\n",
+    "\n",
+    "#mean\n",
+    "cols2=['cant_pagina','dw_throughput_mb','ul_throughput_mb']\n",
+    "# c=['cant_pagina']\n",
+    "df=df.fillna(df.mean()[cols2])\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# mode\n",
+    "cols=[\"num_dias\",\"prot_category\"]\n",
+    "# df.cols=df.cols.astype('str')\n",
+    "\n",
+    "df[cols]=df[cols].fillna(df.mode().iloc[0])\n",
+    "# df[cols]=df[cols].fillna(mode.iloc[0])\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# cat\n",
+    "# import numpy as np\n",
+    "cols=['num_dias']\n",
+    "#binnig - binning could be done - for 0-5 -low,5-15 - mid ,15-25 - high  25+ very high\n",
+    "df.num_dias=np.where(df.num_dias.between (0,5), 'low',np.where(df.num_dias.between(5,15),'Medium',\n",
+    "                                                               np.where(df.num_dias.between(15,25),'High','VeryHigh')))\n",
+    "       "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "                                                        \n",
+    "# #one hot\n",
+    "cols=['num_dias','pagina','prot_category']\n",
+    "df = pd.get_dummies(df, columns=cols, drop_first=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_red_smart.pagina.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df[df.duplicated(['lin__telefono','pagina','periodo'])] #-- unique Keys"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### ri_pco"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df=pd.read_csv('C:\\\\Users\\\\MalikM\\\\OneDrive -  Group\\\\Documents\\\\CVM TEAM -PUNE\\\\PARTNER MARKETs\\\\PERU\\\\PERU CHURN\\\\sample Files-17apr\\\\ri_pco_20210201.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.solicitud_tiendaypunto_venta.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pd.set_option('display.max_columns', None)\n",
+    "df[df.cli__documento=='79ee79338cf8fc434005bc5d07a45d3978ede554986d6b2ec5237589f0b8b642']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### per_reneic"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df=pd.read_csv(\"C:\\\\Users\\MalikM\\\\OneDrive -  Group\\\\Documents\\\\CVM TEAM -PUNE\\\\PARTNER MARKETs\\\\PERU\\PERU CHURN\\\\sample Files-17apr\\\\per_reniec_2020801.csv\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df.vchnp_ubigeo_votacion.value_counts()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# df_per_base_post\n",
+    "# df_des\n",
+    "# df_per_int\n",
+    "# df_idn_con\n",
+    "# df_per_tablon\n",
+    "# df_per_tic\n",
+    "# df_smart=pd.DataFrame(df7)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Combining all the files"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_int.columns"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# left join desconnections with other table\n",
+    "# df_per_base_post\n",
+    "# df_des\n",
+    "# df_per_int\n",
+    "# df_idn_con\n",
+    "# df_per_tablon\n",
+    "# df_per_tic\n",
+    "\n",
+    "df_tot = df_per_base_post.merge(df_per_int, on ='cli__documento', how=\"inner\").merge(df_idn_con,on ='cli__documento', how=\"inner\").merge(df_per_tablon , on ='cli__documento', how=\"inner\").merge( df_per_tic, how=\"inner\", on='cli__documento').merge(df_des, on='cli__documento', how=\"left\")\n",
+    "#                   df_per_int,\n",
+    "#                   df_idn_con,\n",
+    "#                   df_per_tablon,\n",
+    "#                   df_per_tic ], axis=1, join='inner').sort_index()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_tot.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# pd.options.display.max_rows = 400\n",
+    "# pd.DataFrame(df_tot.isnull().sum())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### remove the columns with more than *10% missing values"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# for columns\n",
+    "\n",
+    "# aa=[x for x in df_des.columns if x.isnull().sum()/df_des.shape[0]*100 <15]\n",
+    "# li=['criteriobase', 'deac', 'estadoinar']\n",
+    "# aa=[x for x in li if x.isnull().sum()==0  ]#/df_des.shape[0]*100 <15]\n",
+    "# aa\n",
+    "\n",
+    "# working\n",
+    "# pct_null = df_des.isnull().sum() / len(df_des)\n",
+    "# missing_features = pct_null[pct_null > 0.10].index\n",
+    "# df_des.drop(missing_features, axis=1, inplace=True)\n",
+    "# df_des.columns\n",
+    "\n",
+    "#another way\n",
+    "df_des.dropna(axis=1, thresh=0.9 * len(df_des), subset=None, inplace=True)\n",
+    "#Delete rows/columns which contains less than minimun thresh number of non-NaN values.\n",
+    "\n",
+    "\n",
+    "# for rows\n",
+    "df_des.dropna(axis=0, thresh=0.9 * df_des.shape[1], subset=None, inplace=True)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### outlier treatment"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# for all numerical columns at once\n",
+    "df = df.clip(df.quantile(0.0005), df.quantile(0.9995),axis=1)\n",
+    "\n",
+    "# other way\n",
+    "def outlier_imputation(df):\n",
+    "    col= list(df.columns.values)\n",
+    "    for i in col:\n",
+    "        q1,q3=df[i].quantile([0.25,0.75])\n",
+    "        iqr=q3-q1\n",
+    "        ul=q3+1.5*iqr\n",
+    "        ll=q1-1.5*iqr\n",
+    "        df[i]=df[i].map(lambda x:ul if x>ul else x)\n",
+    "        df[i]=df[i].map(lambda x: ll if x<ll else x)\n",
+    "    return df \n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### missing value treatment"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "# with median\n",
+    "cols=[list of colummns]\n",
+    "df_3=df_3.fillna(df_3.median()[cols])\n",
+    "\n",
+    "\n",
+    "# with mode\n",
+    "df_3[cols]=df_3[cols].fillna(df_3.mode().iloc[0])\n",
+    "\n",
+    "#with mean\n",
+    "df_3=df_3.fillna(df_3.mean()[cols])\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Feature creation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### create dummies - one hot encoding"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def encode_and_bind(original_dataframe, feature_to_encode):\n",
+    "    dummies = pd.get_dummies(original_dataframe[[feature_to_encode]])\n",
+    "    res = pd.concat([original_dataframe, dummies], axis=1)\n",
+    "    res = res.drop([feature_to_encode], axis=1)\n",
+    "    return(res) "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### dimensionality reduction"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### class imbalance problem "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# train / validation / test split "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# model training "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#model evaluation"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# lifts and gains"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#### fecactivacion_post -Activation date of the contract)\n",
+    "#### fecactivacioncontrato - First activation date of the line)\n",
+    "#### fecdesactivacioncontrato\tDeactivation date of the contract (if the line churned during the month)\n",
+    "#### fecingresocliente\tFirst activation date of the client.\n",
+    "# fecmigprepost\tDate on which the last migration from pre to post of the account occured\n",
+    "# fecultimocambioeqp\tDate of the last change of device\n",
+    "# fecultsusp_mora\tDate of the last suspension for robbery\n",
+    "# fecultsusp_robo\tDate of the last suspension for robbery\n",
+    "# fecvep_orden\tDate of the VEP order\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### % of customers switchde from pre to post - 11%"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "df_per_base_post.shape[0]/(df_per_base_post.shape[0]-df_per_base_post.fecmigprepost.isnull().sum()) "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### data check  -> First activation date of the client(fecingresocliente) > fecmigprepost\tDate on which the last migration from pre to post of the account occured -- these customers to be removed"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "(df_per_base_post.fecingresocliente > df_per_base_post.fecmigprepost).sum()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### avg days taken by the customer to migrate from pre-post -  (2 years)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "aa=pd.to_datetime(df_per_base_post.fecmigprepost) - pd.to_datetime(df_per_base_post.fecingresocliente)\n",
+    "# df_per_base_post.fecingresocliente.as"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "### "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "aa.mean()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### % customers with new devices distributions - \n",
+    "21% upgraded in 2018\n",
+    "20 % upgraded in 2020\n",
+    "17% upgraded in 2019\n",
+    "17% upgraded in 2017"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#### fecultimocambioeqp - date of last change of device\n",
+    "y=pd.to_datetime(df_per_base_post.fecultimocambioeqp).dt.year\n",
+    "y.value_counts()/df_per_base_post.shape[0]\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "####\n",
+    "numantiguedad\t -- Antiquity of the client \n",
+    "\n",
+    "numantiguedad_cliente\t-- Client antiquity (measured as the antiquity of the oldest line associated with the client).\t\n",
+    "numantiguedad_post -- Antiquity of the line\n",
+    "\n",
+    "#### Avg duration of the customers/ with this line is 15 months\n",
+    "#### Avg duration of the customers/ with any line is 35 months\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post.numantiguedad.mean()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# df_per_base_post.numantiguedad_cliente.min() # wrong data - pulling mean towards it - 788 rows have -ve values\n",
+    "# len(df_per_base_post[(df_per_base_post.numantiguedad_cliente < 0)].loc[:,'numantiguedad_cliente']) # 788\n",
+    "(df_per_base_post[(df_per_base_post.numantiguedad_cliente > 0)]['numantiguedad_cliente']).mean()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post.numantiguedad_post.mean()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### no of plan changes in the month - \n",
+    "#### 92% doesnt do\n",
+    "#### 6 %  less than 2 times\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post.numcant_cambioplan.max()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post.numcant_cambioplan.describe()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post.numcant_cambioplan.value_counts()/df_per_base_post.shape[0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### numcant_celdas - data issues - alll values are 0\n",
+    "- Number of nodes on which the line has made traffic in the month.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post.numcant_celdas.describe()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### numcant_consultaprevia - data issue - all values 0\n",
+    " -Number of previous consults in the month\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post[['numcant_consultaprevia','numcant_consultaprevia_1m','numcant_consultaprevia_3m','numcant_consultaprevia_6m']].describe()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### numcant_renovacion- Number of renewals in the month.\n",
+    "#### numcant_renovacionl_1m - Number of renewals in the last 1month - 99% has not renewed\n",
+    "#### numcant_renovacion_2m - Number of renewals in the last 2month - 99% has not renewed\n",
+    "#### numcant_renovacion_3m - Number of renewals in the last 3month - 98% has not renewed, 1% has renewed 1 time\n",
+    "#### numcant_renovacion_6m - Number of renewals in the last 6month -98% has not renewed, 2% has renewed 1 time\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post[['numcant_renovacion','numcant_renovacion_1m','numcant_renovacion_2m','numcant_renovacion_3m','numcant_renovacion_6m']].describe()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post['numcant_renovacion_6m'].value_counts()/df_per_base_post.shape[0]\n",
+    "# ,'numcant_renovacion_1m','numcant_renovacion_2m','numcant_renovacion_3m','numcant_renovacion_6m']].describe()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#### numcodigoplantarifariobscs - tarif plan code\n",
+    "#### 141 unique plan codes\n",
+    "# -1682\t0.253924\n",
+    "# -732\t0.111733\n",
+    "# -714\t0.093798\n",
+    "# -721\t0.074369\n",
+    "# -724\t0.065898\n",
+    "# -723\t0.064774\n",
+    "# -716\t0.053366\n",
+    "# 2406\t0.044986\n",
+    "# -1683\t0.027270\n",
+    "# -713\t0.019834"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#### numcodigoplantarifariobscs - tarif plan code\n",
+    "((pd.DataFrame(df_per_base_post.numcodigoplantarifariobscs.value_counts()).sort_values(['numcodigoplantarifariobscs'], ascending=False))/df_per_base_post.shape[0]).head(10)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### numfact_adicionales - Total billed ammount for extras consumptions outside of the tariff plan.\n",
+    "#### rarely any customer use over and above their plan\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df_per_base_post.numfact_adicionales.describe()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "len(df_per_base_post[(df_per_base_post.numfact_adicionales>0)])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "####  numfact_occ\tTotal ammount of billed OCC ------ all are negative (do we need to convert them to +ve?)\n",
+    "#### numfact_occ_ac\tTotal ammount of billed OCC-ac\n",
+    "#### numfact_occ_otros - Total ammount of billed OCC-others"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.5"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
